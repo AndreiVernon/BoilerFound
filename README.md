@@ -3,5 +3,3 @@
 ## Team
 
 Andrei Vernon
-
-Thomas Wang
