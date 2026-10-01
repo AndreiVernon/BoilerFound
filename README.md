@@ -2,4 +2,6 @@
 
 ## Team
 
-Andrei Vernon
+Andrei Vernon \
+Gustavo Santana \
+Thomas Wang 
