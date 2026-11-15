@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#f7f5f0" />
+  <title>BoilerFound — Reuniting Boilermakers</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <button class="brand" data-go="home" aria-label="BoilerFound home"><span class="brand-mark">BF</span><span>Boiler<span class="brand-light">Found</span></span></button>
+      <nav class="desktop-nav"><button data-go="home">Home</button><button data-go="reports">My reports</button></nav>
+      <div class="user-chip"><span class="avatar">GP</span><span><small>Logged in as</small><b>Gustavo Peixoto Santana</b></span><button class="signout" data-go="login">Sign out</button></div>
+    </header>
+    <main id="app" aria-live="polite"></main>
+    <footer><div class="footer-mark">BF</div><div><b>BoilerFound</b><p>Reuniting Boilermakers with what they lost.</p></div><span class="footer-note">Made for the Purdue community <span>✳</span></span></footer>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>
