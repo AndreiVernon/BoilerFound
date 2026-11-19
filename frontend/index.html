@@ -1,24 +1,30 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#f7f5f0" />
-  <title>BoilerFound — Reuniting Boilermakers</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f7f5f0">
+  <title>BoilerFound</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="app-shell">
-    <header class="topbar">
-      <button class="brand" data-go="home" aria-label="BoilerFound home"><span class="brand-mark">BF</span><span>Boiler<span class="brand-light">Found</span></span></button>
-      <span class="eyebrow">Purdue community</span>
-    </header>
-    <main id="app" aria-live="polite"></main>
-    <footer><div class="footer-mark">BF</div><div><b>BoilerFound</b><p>Reuniting Boilermakers with what they lost.</p></div><span class="footer-note">Made for the Purdue community <span>✳</span></span></footer>
-  </div>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="#/"><span class="brand-mark">BF</span>BoilerFound</a>
+      <nav class="site-nav" aria-label="Main">
+        <a href="#/report" data-nav="report">Report lost item</a>
+        <a href="#/reports" data-nav="reports">My reports</a>
+      </nav>
+      <span class="user-name" id="user-name"></span>
+    </div>
+  </header>
+  <main class="container" id="app" aria-live="polite"></main>
+  <footer class="site-footer">
+    <div class="container">Made for the Purdue community</div>
+  </footer>
   <div class="toast" id="toast" role="status"></div>
   <script src="app.js"></script>
 </body>
