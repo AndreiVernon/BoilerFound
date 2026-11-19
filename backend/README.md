@@ -2,9 +2,8 @@
 
 FastAPI service for BoilerFound, a lost-and-found app for Purdue that matches lost-item reports with
 photos of found items. So far it covers lost-item reports: submitting them (requirement FR-101) and
-editing or closing them (FR-102). Requirement IDs refer to our Software Development Plan,
-[docs/Semester_1/SDP.pdf](../docs/Semester_1/SDP.pdf). Found reports, matching, and notifications
-are not built yet.
+editing or closing them (FR-102), plus found-report submission (FR-103) and owner-only retrieval. Requirement IDs refer to our Software Development Plan,
+[docs/Semester_1/SDP.pdf](../docs/Semester_1/SDP.pdf). Matching, claims, notifications, and found-report editing are not built yet.
 
 ## Setup
 
@@ -58,6 +57,23 @@ is unusable outside local development for now. When the real provider is chosen,
 | GET    | `/lost-reports/{id}`       | One of your reports                                               |
 | PATCH  | `/lost-reports/{id}`       | JSON with any of `description`, `location`, `status`. Returns the updated report |
 | GET    | `/lost-reports/{id}/image` | The report's image file                                           |
+| POST   | `/found-reports`           | Create a found report; required multipart `location` and `image`, optional `drop_off`, `description`, and `question` |
+| GET    | `/found-reports/{id}`      | Retrieve one found report owned by the authenticated reporter |
+| GET    | `/found-reports/{id}/image` | Retrieve its image, with the same owner/access checks |
+
+### Found-report contract
+
+`POST /found-reports` returns `201` with `id`, `owner_id`, `location`, `drop_off`, `description`, `question`, `status`, `created_at`, and `image_url`. The server generates the ID and timestamp; status is initially `available`. Missing optional text fields become empty strings. The frontend maps these fields to its existing display model.
+
+- `location`: required, 1–150 characters after trimming.
+- `image`: required JPEG or PNG identified by content, up to 10 MB by default; uses the existing image store.
+- `drop_off`: optional, up to 150 characters after trimming.
+- `description`: optional, up to 1,000 characters after trimming.
+- `question`: optional, up to 300 characters after trimming. It is stored privately for the reporter; this API does not implement claims or verify ownership.
+
+Creation uses the authenticated account as owner. Found-report reads and image downloads require that same owner. Error responses use `401` for missing/invalid authentication, `403` for another user's record, `404` for missing records/images, `422` for invalid/missing fields, `413` for oversized uploads, and `415` for unsupported image content. A database failure removes the newly uploaded image. Existing lost-report behavior is unchanged.
+
+Sensitive-item routing remains a frontend decision in this prototype; server-side sensitive-item classification and production identity integration are not implemented.
 
 Rules:
 
@@ -112,6 +128,9 @@ Settings come from environment variables (or a `backend/.env` file), all prefixe
 | `BOILERFOUND_UPLOAD_DIR`       | `uploads/` in `backend/`    |
 | `BOILERFOUND_MAX_IMAGE_BYTES`  | `10485760` (10 MB)          |
 | `BOILERFOUND_ENABLE_DEV_AUTH`  | `true`                      |
+| `BOILERFOUND_CORS_ORIGINS`    | `["http://localhost:8081", "http://127.0.0.1:8081"]` |
+
+The CORS setting is a JSON array of exact allowed browser origins. Set it when using another frontend port or host. It permits the existing authenticated multipart requests; it does not bypass authentication.
 
 `BOILERFOUND_DATABASE_URL` is a SQLAlchemy URL, e.g. `sqlite:///C:/data/boilerfound.db` (three
 slashes, then an absolute path). Only SQLite works today; using Postgres will also need a driver such

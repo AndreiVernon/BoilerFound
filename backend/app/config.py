@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     # Placeholder auth until Firebase vs. Cognito is decided. Must be False in any deployment.
     enable_dev_auth: bool = True
 
+    # Explicit browser origins; configurable as a JSON array in BOILERFOUND_CORS_ORIGINS.
+    cors_origins: list[str] = ["http://localhost:8081", "http://127.0.0.1:8081"]
+
 
 def get_settings(request: Request) -> Settings:
     return request.app.state.settings

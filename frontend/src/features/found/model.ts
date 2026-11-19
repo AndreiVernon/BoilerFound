@@ -1,7 +1,7 @@
 export const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
-export type Photo = { uri: string; name: string; mimeType: 'image/jpeg' | 'image/png'; size: number; width: number; height: number };
+export type Photo = { uri: string; uploadUri?: string; name: string; mimeType: 'image/jpeg' | 'image/png'; size: number; width: number; height: number };
 export type FoundDraft = { photo: Photo | null; location: string; dropOff: string; description: string; question: string };
-export type FoundReport = FoundDraft & { id: string; createdAt: string; status: 'Available' };
+export type FoundReport = Omit<FoundDraft, 'photo'> & { id: string; createdAt: string; status: 'Available'; imageUrl: string };
 export type FormErrors = Partial<Record<keyof FoundDraft, string>>;
 export const emptyDraft = (): FoundDraft => ({ photo: null, location: '', dropOff: '', description: '', question: '' });
 

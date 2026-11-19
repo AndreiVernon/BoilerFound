@@ -68,3 +68,17 @@ class LostReport(Base):
     )
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=_utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=_utcnow, onupdate=_utcnow)
+
+
+class FoundReport(Base):
+    __tablename__ = "found_reports"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_new_id)
+    owner_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    location: Mapped[str] = mapped_column(String(150))
+    drop_off: Mapped[str] = mapped_column(String(150), default="")
+    description: Mapped[str] = mapped_column(String(1000), default="")
+    question: Mapped[str] = mapped_column(String(300), default="")
+    image_key: Mapped[str] = mapped_column(String(64))
+    status: Mapped[str] = mapped_column(String(16), default="available", index=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=_utcnow)
