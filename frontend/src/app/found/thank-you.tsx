@@ -9,22 +9,32 @@ import { colors, fonts } from '../../theme';
 
 export default function ThankYouScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
-  const [result, setResult] = useState<{ id: string; report: FoundReport | null } | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const [result, setResult] = useState<{ id: string; attempt: number; report: FoundReport | null; error?: string } | null>(null);
   const report = result && result.id === id ? result.report : null;
-  const loading = !!id && result?.id !== id;
+  const loading = !!id && (result?.id !== id || result?.attempt !== attempt);
+  const error = result?.id === id ? result?.error : undefined;
   useEffect(() => {
     let active = true;
     if (!id) return;
-    reportRepository.get(id).then(value => { if (active) setResult({ id, report: value }); }).catch(() => { if (active) setResult({ id, report: null }); });
+    reportRepository.get(id)
+      .then(value => { if (active) setResult({ id, attempt, report: value }); })
+      .catch(failure => {
+        if (active) setResult({ id, attempt, report: null, error: failure instanceof Error ? failure.message : 'Please try again.' });
+      });
     return () => { active = false; };
-  }, [id]);
+  }, [id, attempt]);
   return <Screen>
     <Head><title>{report ? 'Thank you!' : 'Report confirmation'} | BoilerFound</title></Head>
     <View style={styles.spacer} />
-    {loading ? <Body centered>Loading your report…</Body> : report ? <>
+    {loading ? <Body centered>Loading your report…</Body> : error ? <>
+      <Heading>Could not load your report</Heading>
+      <Body>{error}</Body>
+      <Button title="Try again" onPress={() => setAttempt(current => current + 1)} />
+    </> : report ? <>
       <View style={styles.badge}><Icon name="check" /></View>
       <View style={{ alignItems: 'center' }}><Heading>Thank you!</Heading></View>
-      <Body centered>Your report is saved on this device. Thank you for helping a fellow Boilermaker.</Body>
+      <Body centered>Your report has been saved. Thank you for helping a fellow Boilermaker.</Body>
       <View style={styles.card}>
         <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}><Icon name="pin" /><View style={{ flex: 1, gap: 2 }}>
           <Text style={{ fontFamily: fonts.semibold, fontSize: 11, color: colors.secondary }}>{report.dropOff ? 'LEAVE IT AT' : 'FOUND AT'}</Text>

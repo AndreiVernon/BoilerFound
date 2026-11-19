@@ -18,7 +18,7 @@ export default function PhotoField({ photo, onChange, error, onBusyChange }: { p
       if (!asset.base64 || !['image/jpeg', 'image/png'].includes(mimeType ?? '')) throw new Error('Choose a JPEG or PNG photo.');
       const size = asset.fileSize ?? Math.ceil(asset.base64.length * 0.75);
       if (size > MAX_PHOTO_BYTES) throw new Error('Choose a photo up to 10 MB.');
-      onChange({ uri: `data:${mimeType};base64,${asset.base64}`, name: asset.fileName ?? 'Found item photo', mimeType: mimeType as Photo['mimeType'], size, width: asset.width, height: asset.height });
+      onChange({ uri: `data:${mimeType};base64,${asset.base64}`, uploadUri: asset.uri, name: asset.fileName ?? 'Found item photo', mimeType: mimeType as Photo['mimeType'], size, width: asset.width, height: asset.height });
     } catch (failure) { setUploadError(failure instanceof Error ? failure.message : 'Could not open your photos. Try again.'); }
     finally { onBusyChange(false); }
   }

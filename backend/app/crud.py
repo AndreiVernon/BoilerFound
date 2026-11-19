@@ -3,7 +3,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import LostReport, ReportStatus
+from app.models import FoundReport, LostReport, ReportStatus
 
 
 def create_lost_report(
@@ -43,3 +43,21 @@ def list_match_eligible_lost_reports(db: Session) -> list[LostReport]:
     Nothing calls this yet. It's the entry point for the matching work (FR-109).
     """
     return list(db.scalars(select(LostReport).where(LostReport.status == ReportStatus.OPEN)))
+
+
+def create_found_report(
+    db: Session, *, owner_id: str, location: str, drop_off: str,
+    description: str, question: str, image_key: str,
+) -> FoundReport:
+    report = FoundReport(
+        owner_id=owner_id, location=location, drop_off=drop_off,
+        description=description, question=question, image_key=image_key,
+    )
+    db.add(report)
+    db.commit()
+    db.refresh(report)
+    return report
+
+
+def get_found_report(db: Session, report_id: str) -> FoundReport | None:
+    return db.get(FoundReport, report_id)

@@ -1,12 +1,13 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import sessionmaker
 
 from app.auth import CurrentUser, seed_dev_users
 from app.config import Settings
 from app.database import Base, make_engine
-from app.routers import lost_reports
+from app.routers import found_reports, lost_reports
 from app.schemas import UserRead
 
 
@@ -29,6 +30,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(title="BoilerFound API", version="0.1.0", lifespan=lifespan)
     app.state.settings = settings
     app.state.session_factory = session_factory
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins,
+        allow_methods=["GET", "POST", "PATCH"],
+        allow_headers=["Authorization", "Content-Type"],
+    )
 
     @app.get("/health", tags=["meta"])
     def health():
@@ -39,6 +46,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return user
 
     app.include_router(lost_reports.router)
+    app.include_router(found_reports.router)
     return app
 
 

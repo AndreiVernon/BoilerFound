@@ -1,5 +1,4 @@
 import { useRef, useState } from 'react';
-import * as Crypto from 'expo-crypto';
 import { router } from 'expo-router';
 import Head from 'expo-router/head';
 import { View } from 'react-native';
@@ -32,12 +31,12 @@ export default function ReportScreen() {
     if (Object.keys(nextErrors).length) return;
     submittingRef.current = true; setSubmitting(true); setSubmitError('');
     try {
-      const id = Crypto.randomUUID();
-      await reportRepository.save({ ...draft, location: draft.location.trim(), dropOff: draft.dropOff.trim(), description: draft.description.trim(), question: draft.question.trim(), id, createdAt: new Date().toISOString(), status: 'Available' });
+      const saved = await reportRepository.save(draft);
       reset();
-      router.replace({ pathname: '/found/thank-you', params: { id } });
-    } catch {
-      setSubmitError('Your report could not be saved. Your entries are still here. Please try again.');
+      router.replace({ pathname: '/found/thank-you', params: { id: saved.id } });
+    } catch (failure) {
+      const message = failure instanceof Error ? failure.message : 'Your report could not be saved.';
+      setSubmitError(`${message} Your entries are still here.`);
     } finally { submittingRef.current = false; setSubmitting(false); }
   }
   return <Screen>
