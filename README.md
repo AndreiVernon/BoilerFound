@@ -5,9 +5,9 @@ BoilerFound helps the Purdue community reconnect lost belongings with their owne
 The prototype implements the **Found Item Report** flow: a Purdue community member reports an item they found, gets Purdue Police guidance for wallets, IDs, and payment cards, submits a photo and where they found it, and sees where to leave the item.
 
 1. Home: start a found-item report.
-2. Item type: sensitive items get Purdue Police guidance; other items continue.
-3. Found report: photo and found location are required; drop-off, description, and an owner-only question are optional.
-4. Thank you: shows the drop-off location and the report ID saved by the backend.
+2. Item type: for wallets, IDs, and payment cards, the app shows Purdue Police hand-off guidance and ends without saving a report. Other items continue.
+3. Found report: photo and found location are required. Drop-off location, description, and a verification question are optional. The verification question is something only the real owner could answer (e.g. "What's written on the inside tag?"); it is stored privately with the report for checking future claims.
+4. Thank you: shows where to leave the item (the drop-off location, or the found location if no drop-off was given) and the report ID saved by the backend.
 
 ### Run locally
 
@@ -26,7 +26,11 @@ In a second terminal, serve the frontend from the repo root:
 python -m http.server 8081 -d frontend
 ```
 
-Open http://localhost:8081. Opening `index.html` directly from disk does not work because the backend only accepts requests from the origins in `BOILERFOUND_CORS_ORIGINS` (port 8081 by default). The page needs an internet connection for Google Fonts.
+Open http://localhost:8081. The backend creates its SQLite database and upload folder on first start; no other setup is needed.
+
+- The page sends requests to `http://127.0.0.1:8000` (uvicorn's default) as the backend's built-in test user Alice. Change `API_BASE` or `DEV_AUTH_TOKEN` at the top of `frontend/app.js` to use another address or test user.
+- Opening `index.html` directly from disk does not work. The backend only accepts browser requests from the origins listed in `BOILERFOUND_CORS_ORIGINS` (port 8081 by default), set as an environment variable or in `backend/.env`.
+- The page needs an internet connection for Google Fonts.
 
 ### Tests
 

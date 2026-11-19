@@ -41,12 +41,12 @@ This tree defines where project files belong as they are added; it does not indi
 
 ### Organization rules
 
-- Keep the frontend dependency-free and build-free. Each screen is a render function in `frontend/app.js`; split it into ES modules under `frontend/` when it grows past one flow. All backend requests go through the `API_BASE` setting.
+- Keep the frontend dependency-free and build-free. Each screen is a render function in `frontend/app.js`. When a second user flow is added, split `app.js` into ES modules under `frontend/`. All backend requests use the `API_BASE` constant at the top of `app.js`.
 - Keep API endpoints in backend routers, request/response validation in schemas, database entities in models, and database operations in CRUD modules. Split modules by feature when needed.
 - Keep backend tests in `backend/tests/`. Use synthetic images and temporary test databases.
 - Document API fields, responses, and errors in the backend README and generated OpenAPI documentation. Update callers when an API changes.
 - Keep this process, project reference documents, and implementation notes in `docs/`.
-- Commit dependency manifests and lockfiles. Exclude credentials, private user data, local uploads/databases, virtual environments, `node_modules/`, build output, and generated test reports.
+- Commit dependency manifests and lockfiles. Exclude credentials, private user data, local uploads/databases, virtual environments, and generated test reports.
 
 ### References
 
@@ -110,13 +110,13 @@ Reviewers check scope, correctness, readability, API compatibility, tests, and d
 
 | Change | Required checks |
 | --- | --- |
-| Frontend behavior or interface | Manual click-through of the changed flow at desktop and mobile widths, and comparison with Figma |
+| Frontend behavior or interface | Manual click-through of the changed flow at desktop and mobile widths, and comparison with the [Figma prototype](https://www.figma.com/design/LACVTkIlbslyo5x2L4oDDA/BoilerFound-UI-UX?node-id=87-310) |
 | Backend behavior | Relevant pytest tests, including meaningful validation and access-control failure cases |
 | Frontend/backend integration | Applicable frontend/backend checks and a flow tested against the real local API |
 | Documentation or folder structure only | Markdown readability, valid paths/references, and consistency between the documented and actual structure |
 | Dependencies or CI configuration | Affected checks/jobs and dependency consistency |
 
-Run checks on the current changes before final review. GitHub Actions runs the relevant suites for pull requests and shared-branch pushes once the corresponding application and workflow are present. Do not claim tests passed if they were not run or only passed on an earlier revision.
+Run checks on the current changes before final review. GitHub Actions runs the backend pytest suite on Python 3.12 and 3.14 for pull requests and for pushes to `main` or `prototype` that change `backend/`. The frontend has no automated checks yet. Do not claim tests passed if they were not run or only passed on an earlier revision.
 
 All applicable checks must pass before merging. Explain failures or skipped checks and resolve them before approval. Documentation-only changes do not require unrelated application tests.
 
