@@ -2,7 +2,7 @@
 
 ## 1. Repository Architecture
 
-BoilerFound uses one shared repository for its Expo/React Native frontend, Python/FastAPI backend, tests, and documentation. Related frontend and backend changes can be reviewed together in one pull request.
+BoilerFound uses one shared repository for its static HTML/CSS/JavaScript frontend, Python/FastAPI backend, tests, and documentation. Related frontend and backend changes can be reviewed together in one pull request.
 
 ```text
 BoilerFound/
@@ -11,23 +11,14 @@ BoilerFound/
 ├── .github/
 │   ├── ISSUE_TEMPLATE/             # Task and bug-report templates
 │   └── workflows/                  # GitHub Actions checks
-├── doc/
-│   └── development-process.md      # Team development process
 ├── docs/
+│   ├── development-process.md      # Team development process
 │   ├── Semester_1/                 # Proposal, SDP, and course documents
 │   └── implementation/             # Technical notes and test/demo evidence
 ├── frontend/
-│   ├── src/
-│   │   ├── app/                    # Expo Router screens and navigation
-│   │   ├── components/             # Shared interface components
-│   │   ├── features/
-│   │   │   └── found/              # Found-report state, validation, and data access
-│   │   └── theme.ts                # Shared colors and fonts
-│   ├── assets/                     # Images, icons, and design assets
-│   ├── tests/                      # Browser tests and synthetic fixtures
-│   ├── package.json                # Dependencies and development commands
-│   ├── package-lock.json           # Reproducible dependency versions
-│   └── playwright.config.ts        # Desktop and mobile browser-test settings
+│   ├── index.html                  # Page shell: header, footer, and #app mount point
+│   ├── app.js                      # Screen rendering, navigation, form state, and API calls
+│   └── styles.css                  # Shared colors, fonts, and layout
 └── backend/
     ├── app/
     │   ├── main.py                 # FastAPI application setup
@@ -50,16 +41,16 @@ This tree defines where project files belong as they are added; it does not indi
 
 ### Organization rules
 
-- Put screens and navigation layouts in `frontend/src/app/`. Keep reusable components, validation, state, and data access outside the route directory.
+- Keep the frontend dependency-free and build-free. Each screen is a render function in `frontend/app.js`; split it into ES modules under `frontend/` when it grows past one flow. All backend requests go through the `API_BASE` setting.
 - Keep API endpoints in backend routers, request/response validation in schemas, database entities in models, and database operations in CRUD modules. Split modules by feature when needed.
-- Keep frontend tests in `frontend/tests/` and backend tests in `backend/tests/`. Use synthetic images and temporary test databases.
+- Keep backend tests in `backend/tests/`. Use synthetic images and temporary test databases.
 - Document API fields, responses, and errors in the backend README and generated OpenAPI documentation. Update callers when an API changes.
-- Keep this process in `doc/`; keep project reference documents and implementation notes in `docs/`.
+- Keep this process, project reference documents, and implementation notes in `docs/`.
 - Commit dependency manifests and lockfiles. Exclude credentials, private user data, local uploads/databases, virtual environments, `node_modules/`, build output, and generated test reports.
 
 ### References
 
-- [Expo Router core concepts](https://docs.expo.dev/router/basics/core-concepts/) guides the separation of route files from shared frontend code.
+- [MDN: Dealing with files](https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Environment_setup/Dealing_with_files) guides the layout of a static HTML/CSS/JavaScript site.
 - [FastAPI: Bigger Applications](https://fastapi.tiangolo.com/tutorial/bigger-applications/) guides modular backend organization using routers.
 - [pytest: Good Integration Practices](https://docs.pytest.org/en/stable/explanation/goodpractices.html) guides test organization and isolated execution.
 
@@ -119,7 +110,7 @@ Reviewers check scope, correctness, readability, API compatibility, tests, and d
 
 | Change | Required checks |
 | --- | --- |
-| Frontend behavior or interface | TypeScript checks, lint, web build, relevant Playwright desktop/mobile tests, and manual comparison with Figma |
+| Frontend behavior or interface | Manual click-through of the changed flow at desktop and mobile widths, and comparison with Figma |
 | Backend behavior | Relevant pytest tests, including meaningful validation and access-control failure cases |
 | Frontend/backend integration | Applicable frontend/backend checks and a flow tested against the real local API |
 | Documentation or folder structure only | Markdown readability, valid paths/references, and consistency between the documented and actual structure |

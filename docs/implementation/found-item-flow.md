@@ -1,37 +1,33 @@
 # Found Item Report implementation
 
-## Routes and responsibilities
+## Screens
 
-| Route | Purpose |
+| Screen | Purpose |
 | --- | --- |
-| `/` | Two report actions; lost reporting is visibly unavailable. |
-| `/found` | Sensitive-item decision with inline police instructions, or continue. |
-| `/found/report` | Photo upload, found location, optional drop-off, description, and ownership question. |
-| `/found/thank-you?id=…` | Retrieve the saved report and show its actual location; return home. |
+| `home` | Single action: report a found item. |
+| `found-choice` | Sensitive-item decision: wallet/ID/payment card, or something else. |
+| `sensitive` | Purdue Police hand-off guidance; returns home. |
+| `found` | Required photo and found location; optional drop-off, description, and owner-only question. |
+| `found-success` | Shows the drop-off (or found) location and report ID returned by the API. |
 
-Expo Router owns navigation. Shared components and design tokens live in `frontend/src/components` and `frontend/src/theme.ts`. `DraftProvider` keeps entered fields when navigating back within the app. Refreshing an unfinished form clears that draft; completed reports persist.
+The frontend is a static page (`frontend/index.html`, `app.js`, `styles.css`) with no build step. `app.js` keeps one in-memory `state` object and re-renders the current screen on change; buttons navigate through `data-go` attributes. Entered fields survive back navigation and failed submissions, but not a page refresh.
 
-`model.ts` contains domain types and validation independent of UI. The report repository now exposes `save(draft)` and `get(id)` through a shared FastAPI adapter. Both platforms send multipart data to `POST /found-reports`; the API validates and stores the photo/fields and returns a server-generated report ID. Confirmation reads `GET /found-reports/{id}`. Backend SQLite and the existing local image store replace the earlier device-local report storage. The backend reuses its development-token authentication and requires report ownership for reads, including image downloads.
+## API integration
 
-The form blocks missing photos, blank/whitespace locations, and invalid field lengths. Web uploads check JPEG/PNG signatures, decoding, and the 10 MB size limit, rather than relying on extensions. The API independently validates fields, image signatures, size, and access. Failed submissions preserve the draft. Double-click submission is guarded; success navigation happens only after a `201` response. Confirmation distinguishes missing reports from server errors and provides retry for a failed API read. Request timeouts do not silently save to another store.
+Submitting the form sends `multipart/form-data` to `POST /found-reports` with `location`, `drop_off`, `description`, `question`, and `image`. The backend validates every field and the image bytes (JPEG/PNG, 10 MB max), stores the report in SQLite and the photo in `backend/uploads/`, and returns the saved report with a server-generated ID. The confirmation screen displays the values the server returned. The full contract is in [backend/README.md](../../backend/README.md).
 
-Found location is required; drop-off location is optional to follow this assignment's two required fields. The confirmation labels an entered drop-off as “Leave it at”; otherwise it labels the original location as “Found at” and asks for a staffed drop-off. It never silently treats the discovery location as the pickup desk.
+The page authenticates with the backend's public `dev-token-alice` placeholder token. `API_BASE` and `DEV_AUTH_TOKEN` at the top of `app.js` set the server and account.
 
-## Figma comments reviewed
+Failures keep the user's entries and show an inline message: unreachable server, `401`, `413` (photo too large), `415` (not JPEG/PNG), and `422` (missing or too-long fields). The submit button is disabled while a request is in flight.
 
-Reviewed all returned file comments on the final prototype. Applied the relevant suggestions:
+## Known limitations
 
-- **Consistent primary action** (`2003168132`): gold primary buttons throughout; secondary actions use outlines.
-- **Caption proximity** (`2003164537`): each home caption is inside its own action.
-- **Required fields and recovery** (`2003170715`): explicit labels and inline messages; errors and back navigation preserve entries.
-- **Police contact information** (`2003172843`, `2002948413`): inline sensitive-item guidance includes the [official contact page](https://www.purdue.edu/ehps/police/contact/index.php).
-- **Optional ownership question** (`2003173201`, `2003166778`): helper text explains that desk staff still verify ownership if no question is provided. This field is not treated as authentication or proof of ownership.
-- **Photo quality** (`2002826200`): web uploads show a nonblocking resolution warning below 640 × 480. Automated blur detection remains outside this assignment.
-
-Deferred: report update/return actions, claims and review states, notification history, production authentication, and verified official drop-off dropdowns. These require additional flows or authoritative backend data. The suggestion to remove required-photo labeling was not applied because explicit requirements help first-time users. The prototype uses the backend's existing development accounts; it does not implement user login. Police guidance remains inline on the item-type screen, as in the existing frontend.
+- No sign-in screen; every report belongs to the dev account Alice.
+- The confirmation is not refetchable: refreshing it returns to home. The report itself persists and can be read with `GET /found-reports/{id}`.
+- Sensitive-item routing is a frontend choice only; the API does not classify items.
+- Browser-side validation is limited to `required` and `maxlength`; image type and size are only checked by the server.
+- Matching, claims, notifications, and editing found reports are future work.
 
 ## Verification
 
-Playwright exercises actual pages at desktop and mobile viewports against a real test API with temporary SQLite/image storage. Fixtures contain a synthetic water-bottle image, not a user's photo. Happy-path tests verify the API's `201` response, persisted fields, and downloaded image bytes. Failure tests simulate unavailable endpoints and verify draft preservation, confirmation error states, and successful retry. Backend tests additionally check owner access, rejected payloads, image cleanup, and persistence across server restart.
-
-Run commands from the root README. CI stores the Playwright report and browser-test artifacts, including confirmation screenshots. Native Android/iOS testing, production authentication, request idempotency across network retries, and cloud storage/deployment remain future work.
+Backend: `pytest` in `backend/` (85 tests, including the found-report suite, CORS, owner access, and image cleanup). Frontend: run both servers per the root README and click through the flow, including a failed submission with the backend stopped.
