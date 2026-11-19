@@ -1,62 +1,118 @@
 const app = document.querySelector('#app');
-const topbar = document.querySelector('.topbar');
-const toast = document.querySelector('#toast');
-const state = { screen: 'login', foundType: 'other', lostDescription: '', foundDescription: '', question: '', answer: '', closed: false, foundClosed: false, claim: false };
 
-const backpack = '<div class="backpack"></div><span class="bag-pin">✳</span>';
-const button = (text, go, style='btn-gold', extra='') => `<button class="btn ${style} ${extra}" data-go="${go}">${text}</button>`;
-function header(){
-  const logged = state.screen !== 'login';
-  topbar.classList.toggle('logged-out', !logged);
-  document.querySelector('.user-chip').classList.toggle('hidden', !logged);
-  document.querySelector('.desktop-nav').classList.toggle('hidden', !logged);
+const state = {
+  screen: 'home',
+  photoName: '',
+  photoFile: null,
+  foundLocation: '',
+  dropLocation: '',
+  description: '',
+  question: '',
+  reportId: null,
+  submitting: false,
+};
+
+const button = (label, destination, style = 'btn-gold', extra = '') =>
+  `<button class="btn ${style} ${extra}" data-go="${destination}">${label}</button>`;
+const page = (content, className = '') => `<section class="page ${className}">${content}</section>`;
+
+function render() {
+  const screens = {
+    home: () => page(`<div class="center-state"><span class="eyebrow">BoilerFound · Purdue community</span><h1 style="margin-top:12px">Help reunite someone with what they lost.</h1><p class="lede">Found an item on campus? Share a few details so its owner can find it.</p>${button('Report a found item', 'found-choice', 'btn-gold btn-block')}</div>`),
+    'found-choice': () => page(`<div class="center-state"><button class="back-link" data-go="home">← Back</button><span class="eyebrow">Found item report</span><h1 style="margin-top:12px">What did you find?</h1><p class="lede">Wallets, IDs and payment cards are handled by Purdue Police, so we don’t list them here.</p><div class="notice warning" style="text-align:left"><strong>For everyone’s safety, sensitive items go straight to the police.</strong>Hand the item to Purdue Police, or ask a building front desk to pass it on.</div><div class="stack" style="max-width:420px;margin:20px auto 0">${button('Wallet, ID or payment card', 'sensitive', 'btn-outline btn-block')}${button('Something else', 'found', 'btn-gold btn-block')}</div></div>`),
+    sensitive: () => page(`<div class="center-state"><button class="back-link" data-go="found-choice">← Back</button><div class="state-icon">ⓘ</div><h1>Take it to Purdue Police</h1><p class="lede">Wallets, IDs and payment cards are handled by Purdue Police.</p><div class="card" style="text-align:left"><h3 class="card-title" style="font-size:19px">A few helpful steps</h3><ol class="steps-list"><li>Hand the item to Purdue Police, or ask a building front desk to pass it on.</li><li>Don’t post photos of it online.</li></ol></div>${button('Done', 'home', 'btn-dark btn-block')}</div>`),
+    found: () => page(`<div class="app-layout"><aside class="side-note"><span class="eyebrow">Found item report</span><p>Help its owner find it.</p><small>Keep identifying details private. The owner sees the handoff location after the item is claimed.</small></aside><div class="form-card"><button class="back-link" data-go="found-choice">← Back</button><div class="card"><div class="stepper"><span class="done"></span><span></span></div><h1 class="card-title">Report a found item</h1><p class="card-subtitle">Add a photo and where you found it. Other details are optional.</p><form id="found-report"><div class="field"><label for="photo">Photo <span style="color:#9b5c46">· Required</span></label><label class="upload"><span class="upload-icon">▧</span><strong>${escapeHtml(state.photoName || 'Take or upload a photo')}</strong><span>${state.photoName ? 'Photo selected' : 'Helps the owner recognize their item'}</span><input id="photo" name="photo" type="file" accept="image/*" ${state.photoFile ? '' : 'required'} class="hidden"></label></div><div class="field"><label for="found-location">Where did you find it?</label><input id="found-location" name="foundLocation" class="input" required maxlength="150" placeholder="e.g. Lawson, room 1142" value="${escapeHtml(state.foundLocation)}"></div><div class="field"><label for="drop-location">Where are you leaving it?</label><input id="drop-location" name="dropLocation" class="input" maxlength="150" placeholder="e.g. Lawson front desk" value="${escapeHtml(state.dropLocation)}"></div><div class="field"><label for="description">Description (optional)</label><textarea id="description" name="description" class="textarea" maxlength="1000" placeholder="Color, brand, unique details…">${escapeHtml(state.description)}</textarea></div><div class="field"><label for="question">Question only the owner can answer (optional)</label><input id="question" name="question" class="input" maxlength="300" placeholder="e.g. What’s written on the inside tag?" value="${escapeHtml(state.question)}"></div><p class="field-hint">The owner sees the handoff location only after they claim the item.</p><p id="submit-error" class="field-hint" role="alert"></p><button class="btn btn-gold btn-block" style="margin-top:18px" ${state.submitting ? 'disabled' : ''}>${state.submitting ? 'Submitting report…' : 'Submit report'}</button></form></div></div></div>`),
+    'found-success': () => page(`<div class="complete"><div class="badge-big">✓</div><h1>Thank you!</h1><p class="lede">Your report has been submitted. Please leave the item here:</p><div class="card pickup-card"><div class="notice-title">${state.dropLocation ? 'Leave it at' : 'Found at'}</div><h2>${escapeHtml(state.dropLocation || state.foundLocation)}</h2><div class="info-row"><span class="info-icon">⌖</span><div><b>FOUND AT</b><span>${escapeHtml(state.foundLocation)}</span></div></div><div class="info-row"><span class="info-icon">✓</span><div><b>STATUS</b><span>Available · Demo report #${state.reportId}</span></div></div></div><p class="field-hint">This prototype submits report details to a demo API. Photo contents are not uploaded.</p>${button('Back to home', 'home', 'btn-dark btn-block')}</div>`),
+  };
+  app.innerHTML = (screens[state.screen] || screens.home)();
 }
-function page(content, cls=''){return `<section class="page ${cls}">${content}</section>`}
-function reportCard(status='Searching'){
- return `<div class="card status-card"><div class="status-top"><span class="eyebrow">Your report</span><span class="tag ${status==='Available'?'green':''}">${status}</span></div><div class="report-item"><div class="thumb">🎒</div><div><b>Black Jansport backpack</b><small>Last seen: WALC, 2nd floor</small></div></div></div>`
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
 }
-function render(){
- header();
- const screens = {
-  login: () => page(`<div class="login-wrap"><div class="login-brand"><span class="brand-mark">BF</span><h1>BoilerFound</h1><p>Reuniting Boilermakers with what they lost.</p></div><div class="card"><h2 class="card-title">Welcome back</h2><p class="card-subtitle">Log in with your Purdue account to continue.</p><form data-form="login"><div class="field"><label for="email">Purdue email</label><input class="input" id="email" type="email" required placeholder="you@purdue.edu" value="you@purdue.edu"></div><div class="field"><label for="password">Password</label><input class="input" id="password" type="password" required placeholder="••••••••" value="boilermaker"></div><button class="btn btn-dark btn-block">Log in</button><p class="form-footer">Only Purdue students and staff can use BoilerFound.</p></form></div></div>`),
-  home: () => page(`<div class="hero"><div class="hero-copy"><span class="eyebrow">Lost something on campus?</span><h1>Let’s get your things <em>back.</em></h1><p class="lede">A little detail can make all the difference. Tell us what you lost or found, and we’ll help reunite it with its owner.</p><div class="hero-actions">${button('I lost something','lost','btn-dark')} ${button('I found something','found-choice','btn-outline')}</div><button class="btn btn-soft" data-go="reports" style="margin-top:12px;width:100%;max-width:320px">My reports <span>→</span></button></div><div class="hero-art">${backpack}<span class="art-caption">A campus community that looks out for each other</span></div></div><div class="steps-strip"><div class="step"><span class="step-num">01</span><div><b>Tell us what happened</b><span>Share a few details about the item.</span></div></div><div class="step"><span class="step-num">02</span><div><b>We look for a match</b><span>We’ll notify you when one turns up.</span></div></div><div class="step"><span class="step-num">03</span><div><b>Get it back</b><span>Verify it’s yours and pick it up.</span></div></div></div>`),
-  lost: () => page(`<div class="app-layout"><aside class="side-note"><span class="eyebrow">Flow 1 · Lost item report</span><p>What happened?</p><small>The more detail you add, the better the match. The pickup location is shown after you claim it.</small></aside><div class="form-card"><button class="back-link" data-go="home">← Back to home</button><div class="card"><div class="stepper"><span class="done"></span><span></span><span></span></div><h1 class="card-title">Report a lost item</h1><p class="card-subtitle">Tell us what you lost and where you last saw it.</p><form data-form="lost"><div class="field"><label for="lost-desc">Description</label><textarea id="lost-desc" name="description" class="textarea" required placeholder="Brand, color, size, anything unique…">${state.lostDescription}</textarea></div><div class="field"><label for="location">Last seen location</label><input id="location" name="location" class="input" required placeholder="e.g. WALC, 2nd floor" value="${state.location||''}"></div><div class="field"><label>Photo (optional)</label><label class="upload"><span class="upload-icon">▧</span><strong>Add a photo</strong><span>Tap to choose an image</span><input type="file" accept="image/*" class="hidden"></label></div><button class="btn btn-gold btn-block">Submit report</button></form></div></div></div>`),
-  searching: () => page(`<div class="center-state"><div class="state-icon loading-dot">⌕</div><h1>Looking for matches<span class="loading-dot">…</span></h1><p class="lede">We’ll notify you when a possible match is found. You can close the app.</p>${reportCard()}<div class="card status-card" style="margin-top:-4px"><div class="status-top"><b style="font-size:12px">New possible match</b><span class="tag">New</span></div><p style="font-size:11px;color:var(--muted);line-height:1.5;margin:0 0 12px">A black backpack was turned in on campus.</p>${button('Review possible match','match','btn-gold btn-block')}</div><button class="btn btn-outline btn-block" data-go="home" style="margin-top:14px">Back to home</button></div>`),
-  match: () => page(`<div class="match-banner"><div><b>New possible match</b><small>A black backpack was turned in on campus. Tap to review.</small></div><span class="tag">New</span></div><div class="center-state" style="margin-top:25px"><h1>Is this yours?</h1><p class="lede">Compare the details before claiming this item.</p><div class="card match-card"><div class="match-photo">${backpack}</div><h2>Black Jansport backpack</h2><p>Found 2 h ago</p><div class="match-tags"><span class="hash">#backpack</span><span class="hash">#black</span><span class="hash">#laptop sleeve</span></div><div class="match-actions">${button('Not mine','searching','btn-outline')} ${button('It’s mine','verify','btn-gold')}</div></div></div>`),
-  verify: () => page(`<div class="app-layout"><aside class="side-note"><span class="eyebrow">Verify it’s yours</span><p>What happened?</p><small>The finder left a question only the owner can answer. Only the finder and desk staff see your answer.</small></aside><div class="form-card"><button class="back-link" data-go="match">← Back to match</button><div class="card"><div class="stepper"><span class="done"></span><span class="done"></span><span></span></div><h1 class="card-title">Verify it’s yours</h1><p class="card-subtitle">This detail is private. It helps us make sure the item gets back to the right person.</p><div class="notice"><div class="notice-title">Question from the finder</div><div class="question-box">What is written on the tag inside the main pocket?</div></div><form data-form="verify"><div class="field"><label for="answer">Your answer</label><input id="answer" class="input" required placeholder="Type your answer…" value="${state.answer}"></div><p class="field-hint">Only the finder and desk staff see your answer.</p><button class="btn btn-gold btn-block" style="margin-top:18px">Claim this item</button></form></div></div></div>`),
-  pickup: () => page(`<div class="complete"><div class="badge-big">✓</div><h1>It’s yours!</h1><p class="lede">Here’s where to pick it up.</p><div class="card pickup-card"><h2>Black Jansport backpack</h2><div class="info-row"><span class="info-icon">⌖</span><div><b>PICKUP LOCATION</b><span>WALC, front desk</span></div></div><div class="info-row"><span class="info-icon">◷</span><div><b>HOURS</b><span>Mon–Fri · 8 AM – 8 PM</span></div></div><div class="info-row"><span class="info-icon">▣</span><div><b>BRING</b><span>Your Purdue ID</span></div></div><a class="map-link" href="https://maps.google.com/?q=WALC+Purdue" target="_blank" rel="noreferrer">Open campus map ↗</a></div>${button('I picked it up','closed','btn-dark','btn-block')}<p class="form-footer">Your report will close and matching will stop.</p></div>`),
-  closed: () => page(`<div class="center-state"><div class="state-icon closed-mark">✓</div><h1>Report closed</h1><p class="lede">Glad you got it back. Matching has stopped for this report.</p>${button('Back to home','home','btn-dark','btn-block')}</div>`),
-  'found-choice': () => page(`<div class="center-state"><span class="eyebrow">Flow 2 · Found item report</span><h1 style="margin-top:12px">What did you find?</h1><p class="lede">Wallets, IDs and payment cards are handled by Purdue Police, so we don’t list them.</p><div class="notice warning" style="text-align:left"><strong>For everyone’s safety, sensitive items go straight to the police.</strong>Hand the item to Purdue Police, or ask a building front desk to pass it on.</div><div class="stack" style="max-width:420px;margin:20px auto 0">${button('Wallet, ID or payment card','sensitive','btn-outline btn-block')} ${button('Something else','found','btn-gold btn-block')}</div></div>`),
-  sensitive: () => page(`<div class="center-state"><div class="state-icon">ⓘ</div><h1>Take it to Purdue Police</h1><p class="lede">Wallets, IDs and payment cards are handled by Purdue Police.</p><div class="card" style="text-align:left"><h3 class="card-title" style="font-size:19px">A few helpful steps</h3><ol class="steps-list"><li>Hand the item to Purdue Police, or ask a building front desk to pass it on.</li><li>Don’t post photos of it online.</li></ol></div>${button('Done','home','btn-dark btn-block')}</div>`),
-  found: () => page(`<div class="app-layout"><aside class="side-note"><span class="eyebrow">Found item report</span><p>Help its owner find it.</p><small>Keep sensitive details private. The owner only sees the location after they claim the item.</small></aside><div class="form-card"><button class="back-link" data-go="found-choice">← Back</button><div class="card"><div class="stepper"><span class="done"></span><span></span></div><h1 class="card-title">Report a found item</h1><p class="card-subtitle">Share a few details so the owner can recognize it.</p><form data-form="found"><div class="field"><label>Photo <span style="color:#9b5c46">· Required</span></label><label class="upload"><span class="upload-icon">▧</span><strong>Take or upload a photo</strong><span>Helps the owner recognize their item</span><input type="file" accept="image/*" required class="hidden"></label></div><div class="field"><label for="found-location">Where did you find it?</label><input id="found-location" name="foundLocation" class="input" required placeholder="e.g. Lawson, room 1142"></div><div class="field"><label for="drop-location">Where are you leaving it?</label><input id="drop-location" name="dropLocation" class="input" required placeholder="e.g. Lawson front desk"></div><div class="field"><label for="found-desc">Description (optional)</label><textarea id="found-desc" class="textarea" placeholder="Color, brand, unique details…">${state.foundDescription}</textarea></div><div class="field"><label for="question">Question only the owner can answer (optional)</label><input id="question" class="input" placeholder="e.g. What’s written on the inside tag?" value="${state.question}"></div><p class="field-hint">The owner only sees the location after they claim the item.</p><button class="btn btn-gold btn-block" style="margin-top:18px">Submit report</button></form></div></div></div>`),
-  'found-success': () => page(`<div class="complete"><div class="badge-big">✓</div><h1>Thank you!</h1><p class="lede">Your report is live. Please drop the item off here:</p><div class="card pickup-card"><div class="notice-title">Leave it at</div><h2>${state.dropLocation||'Lawson front desk'}</h2><div class="info-row"><span class="info-icon">⌖</span><div><b>FOUND AT</b><span>${state.foundLocation||'Lawson, room 1142'}</span></div></div><div class="info-row"><span class="info-icon">✓</span><div><b>STATUS</b><span>Available</span></div></div></div><p class="lede" style="font-size:11px">Found your item somewhere else? Close the report so matching stops.</p>${button('Back to home','home','btn-dark btn-block')}</div>`),
-  reports: () => page(`<div class="report-list"><span class="eyebrow">Your account</span><h1 class="page-heading">My reports</h1><p class="lede" style="margin-bottom:25px">Check status, edit or close your reports.</p><div class="report-row"><div class="report-item"><div class="thumb">🎒</div><div><b>Black Jansport backpack</b><small>Last seen: WALC, 2nd floor</small></div></div><div class="row-detail">LOST<br><b>${state.closed?'Closed':'Searching'}</b></div><div class="row-actions">${button('Edit','edit','btn-outline','small-btn')} ${button(state.closed?'Closed':'Close report','close-report','btn-dark small-btn')}</div></div><div class="report-row"><div class="report-item"><div class="thumb">🧴</div><div><b>Blue Hydro Flask</b><small>Left at: ${state.dropLocation||'Lawson front desk'}</small></div></div><div class="row-detail">FOUND<br><b>${state.foundClosed?'Closed':'Available'}</b></div><div class="row-actions">${button('Edit','edit-found','btn-outline','small-btn')} ${button(state.foundClosed?'Closed':'Close report','close-found','btn-dark small-btn')}</div></div><div class="notice">You can edit a report any time. Closing it stops matching and removes it from search.</div></div>`),
-  edit: () => page(`<div class="app-layout"><aside class="side-note"><span class="eyebrow">My reports · edit / close</span><p>Update your lost report.</p><small>Matching will use your latest description and location.</small></aside><div class="form-card"><button class="back-link" data-go="reports">← Back to my reports</button><div class="card"><h1 class="card-title">Edit report</h1><form data-form="edit"><div class="field"><label>Description</label><textarea class="textarea" name="description">${state.lostDescription||'Black Jansport backpack'}</textarea></div><div class="field"><label>Last seen location</label><input class="input" name="location" value="${state.location||'WALC, 2nd floor'}"></div><button class="btn btn-gold btn-block">Save changes</button></form></div></div></div>`),
-  'edit-found': () => page(`<div class="app-layout"><aside class="side-note"><span class="eyebrow">My reports · edit / close</span><p>Update your found report.</p></aside><div class="form-card"><button class="back-link" data-go="reports">← Back to my reports</button><div class="card"><h1 class="card-title">Blue Hydro Flask</h1><form data-form="edit-found"><div class="field"><label for="edit-drop-location">Drop-off location</label><input id="edit-drop-location" name="dropLocation" class="input" value="${state.dropLocation||'Lawson front desk'}" required></div><button class="btn btn-gold btn-block">Save changes</button></form></div></div></div>`)
- };
- app.innerHTML = (screens[state.screen] || screens.home)();
+
+function go(screen) {
+  state.screen = screen;
+  render();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
-function go(screen){ state.screen=screen; render(); window.scrollTo({top:0,behavior:'smooth'}); }
-function notify(message){toast.textContent=message;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),2600)}
-document.addEventListener('click',e=>{
- const nav=e.target.closest('[data-go]'); if(nav){e.preventDefault(); const dest=nav.dataset.go;
-  if(dest==='close-report'){state.closed=true;notify('Report closed. Matching has stopped.');go('reports');return}
-  if(dest==='close-found'){state.foundClosed=true;notify('Report closed. Matching has stopped.');go('reports');return}
-  if(dest==='searching'&&state.screen==='match'){notify('We’ll keep looking for another match.');go('searching');return}
-  if(dest==='closed'){state.closed=true}
-  go(dest);return;
- }
- if(e.target.matches('input[type=file]')) return;
+
+async function submitReport(form) {
+  if (state.submitting) return;
+  const data = new FormData(form);
+  const location = String(data.get('foundLocation') || '').trim();
+  const photo = data.get('photo')?.size ? data.get('photo') : state.photoFile;
+  if (!photo || !location) {
+    form.reportValidity();
+    return;
+  }
+
+  state.foundLocation = location;
+  state.dropLocation = String(data.get('dropLocation') || '').trim();
+  state.description = String(data.get('description') || '').trim();
+  state.question = String(data.get('question') || '').trim();
+  state.photoName = photo.name;
+  state.photoFile = photo;
+  state.submitting = true;
+  render();
+
+  try {
+    // Assignment demo API: JSONPlaceholder accepts POSTs and returns a mock record.
+    const response = await fetch('https://jsonplaceholder.typicode.com/posts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: 'Found item report',
+        body: JSON.stringify({
+          foundLocation: state.foundLocation,
+          dropLocation: state.dropLocation,
+          description: state.description,
+          question: state.question,
+          photoName: state.photoName,
+        }),
+        userId: 1,
+      }),
+    });
+    if (!response.ok) throw new Error(`API returned ${response.status}`);
+    const report = await response.json();
+    state.reportId = report.id;
+    state.submitting = false;
+    go('found-success');
+  } catch {
+    state.submitting = false;
+    render();
+    const error = document.querySelector('#submit-error');
+    if (error) error.textContent = 'The demo API could not be reached. Your entries are still here; please try again.';
+  }
+}
+
+document.addEventListener('click', event => {
+  const control = event.target.closest('[data-go]');
+  if (control) {
+    event.preventDefault();
+    go(control.dataset.go);
+  }
 });
-document.addEventListener('submit',e=>{
- const form=e.target.closest('form[data-form]');if(!form)return;e.preventDefault();
- const type=form.dataset.form;const data=new FormData(form);
- if(type==='login'){go('home')}
- if(type==='lost'){state.lostDescription=data.get('description');state.location=data.get('location');go('searching');setTimeout(()=>{if(state.screen==='searching')notify('A possible match was found.');},450)}
- if(type==='verify'){state.answer=document.querySelector('#answer').value;state.claim=true;go('pickup')}
- if(type==='found'){state.foundLocation=data.get('foundLocation');state.dropLocation=data.get('dropLocation');state.foundDescription=document.querySelector('#found-desc').value;state.question=document.querySelector('#question').value;go('found-success')}
- if(type==='edit'){state.lostDescription=data.get('description');state.location=data.get('location');notify('Your report has been updated.');go('reports')}
- if(type==='edit-found'){state.dropLocation=data.get('dropLocation');notify('Your report has been updated.');go('reports')}
+
+document.addEventListener('change', event => {
+  if (!event.target.matches('#photo')) return;
+  state.photoFile = event.target.files?.[0] || null;
+  state.photoName = state.photoFile?.name || '';
+  render();
 });
-document.addEventListener('change',e=>{if(e.target.matches('input[type=file]')&&e.target.files[0]){const label=e.target.closest('.upload');label.querySelector('strong').textContent=e.target.files[0].name;label.querySelector('span:last-of-type').textContent='Photo ready';}});
+
+document.addEventListener('input', event => {
+  const field = event.target;
+  if (field.name === 'foundLocation') state.foundLocation = field.value;
+  if (field.name === 'dropLocation') state.dropLocation = field.value;
+  if (field.name === 'description') state.description = field.value;
+  if (field.name === 'question') state.question = field.value;
+});
+
+document.addEventListener('submit', event => {
+  if (event.target.id !== 'found-report') return;
+  event.preventDefault();
+  submitReport(event.target);
+});
+
 render();
