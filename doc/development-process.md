@@ -1,7 +1,9 @@
 # BoilerFound Team Development Process
 
-**Team:** Andrei Vernon, Gustavo Santana, Thomas Wang, and Abhigyan Doshi  
-**Applies to:** the prototype assignment and subsequent course development  
+**Team:** Andrei Vernon, Gustavo Santana, Thomas Wang, and Abhigyan Doshi
+
+**Applies to:** the prototype assignment and subsequent course development
+
 **Process owner:** the whole team; changes require a reviewed pull request
 
 ## 1. Purpose and working scope
@@ -12,71 +14,65 @@ Our process keeps tasks small, makes review practical for a four-person team, an
 
 For this prototype, our chosen flow is **Found Item Report**: home → item-type decision → found report with a required photo and found location → confirmation and return home. Sensitive items receive Purdue Police guidance. We will connect submission and confirmation to the backend so the flow includes a meaningful API call.
 
-As of this process's initial preparation:
+### Foundation branch and earlier work
 
-- `origin/main` contains the FastAPI lost-report backend, SQLite persistence, image storage, development authentication, and backend tests.
-- `Gustavo_genAI_acitivity` contains the Expo found-report frontend and browser tests. It is not yet integrated into `main`.
-- The existing frontend saves reports on the device. Found-report API endpoints and frontend/backend integration remain to be implemented.
+- `docs/development-process` is the clean project foundation: this document and empty directory placeholders only. It contains no application code, dependencies, CI workflows, or implemented templates.
+- Earlier backend work remains in the existing `main` history, and earlier frontend work remains on `Gustavo_genAI_acitivity`. These implementations are reference material, not automatically approved parts of the new foundation.
+- The team intends to merge this foundation into `main` after review. That merge intentionally removes the old tracked implementation from the resulting `main` tree. Review those removals explicitly; the earlier commits remain in Git history.
+- Subsequent implementation must follow this structure and process. Reuse earlier code only in focused, reviewed changes that meet current acceptance criteria; do not merge an old implementation branch wholesale into the foundation.
 - Full AI matching, notifications, production identity integration, and cloud deployment are later tasks, not prerequisites for this prototype.
 
 ## 2. Repository architecture
 
 We use a **monorepo**: related frontend, backend, tests, and documentation stay together so one pull request can update an API and its caller.
 
-The following is the target combined layout. `frontend/` already exists on the earlier activity branch and will enter the integration branch through review. Entries marked **planned** are added when their corresponding work begins; they are not claims of implemented functionality.
+The following is the actual foundation layout. Git does not track empty folders, so each leaf folder contains an empty `.gitkeep` file. These files preserve the structure and contain no implementation. Remove a placeholder when its folder receives real tracked files.
 
 ```text
 BoilerFound/
-├── README.md                       # Project overview and local setup entry point
-├── .gitignore                      # Exclude secrets and generated/runtime files
 ├── .github/
 │   ├── ISSUE_TEMPLATE/
-│   │   └── task.md                 # Scope, owner, requirements, acceptance criteria
-│   ├── pull_request_template.md    # Summary, checks, reviewer checklist
+│   │   └── .gitkeep
 │   └── workflows/
-│       ├── backend-tests.yml       # Python API checks
-│       └── frontend.yml            # Frontend checks; comes with frontend integration
+│       └── .gitkeep
 ├── doc/
 │   └── development-process.md      # This single authoritative process document
 ├── docs/
-│   ├── Semester_1/                 # Proposal, SDP, and course reference materials
-│   └── implementation/             # Feature notes and prototype evidence
+│   ├── Semester_1/                 # Future location for course reference materials
+│   │   └── .gitkeep
+│   └── implementation/             # Future feature notes and prototype evidence
+│       └── .gitkeep
 ├── frontend/                       # Expo / React Native / TypeScript
 │   ├── src/
 │   │   ├── app/                    # Expo Router screens and navigation layouts
+│   │   │   └── .gitkeep
 │   │   ├── components/             # Reusable controls and screen elements
-│   │   ├── features/found/         # Found-report state, validation, storage/API adapter
-│   │   └── theme.ts                # Purdue colors and shared font definitions
+│   │   │   └── .gitkeep
+│   │   └── features/found/         # Found-report state, validation, storage/API adapter
+│   │       └── .gitkeep
 │   ├── assets/                     # Local images and Figma assets
-│   ├── tests/                      # Playwright flows and synthetic test fixtures
-│   ├── package.json
-│   ├── package-lock.json           # Commit for reproducible dependency installation
-│   └── playwright.config.ts
+│   │   └── .gitkeep
+│   └── tests/                      # Playwright flows and synthetic test fixtures
+│       └── .gitkeep
 └── backend/                        # Python / FastAPI
     ├── app/
-    │   ├── main.py                 # Application setup and router registration
-    │   ├── routers/                # HTTP endpoints grouped by resource
-    │   ├── schemas.py              # Request/response validation
-    │   ├── models.py               # Database entities
-    │   ├── crud.py                 # Database operations
-    │   ├── database.py             # Engine and database sessions
-    │   ├── auth.py                 # Identity and access dependencies
-    │   ├── config.py               # Environment-based configuration
-    │   └── storage.py              # Image validation and file storage
+    │   └── routers/                # Future HTTP endpoints grouped by resource
+    │       └── .gitkeep
     ├── tests/                      # pytest API tests, grouped by requirement
-    ├── migrations/                 # Planned when versioned schema migrations are added
-    ├── requirements.txt
-    ├── requirements-dev.txt
-    └── README.md                   # Backend setup, endpoints, and configuration
+    │   └── .gitkeep
+    └── migrations/                 # Planned when versioned schema migrations are added
+        └── .gitkeep
 ```
 
 ### Placement and dependency rules
+
+As implementation starts, add the root README and `.gitignore`; frontend package/lock files, routing and test configuration; backend dependency files and setup README; and the required issue/PR templates and CI workflows. They are planned files, not part of this structure-only branch. Shared frontend colors/fonts belong in `frontend/src/theme.ts`. Backend setup belongs in `app/main.py`, with schemas, models, CRUD, database, authentication, configuration, and storage modules added under `backend/app/` when needed.
 
 - Keep route files focused on navigation and screen behavior. Put reusable validation, state, and API access outside `frontend/src/app/`; every ordinary file there represents a route.
 - Keep HTTP handling in backend routers, data validation in schemas, and persistence in database/model/CRUD modules. Split these modules by feature when their size makes navigation difficult; do not create empty layers prematurely.
 - Put tests near the application they validate, using synthetic photos and temporary test databases. Add cross-service flow tests to the frontend suite once a real backend is connected.
 - Keep API request and response names documented in the backend README/OpenAPI schema. Frontend/backend changes must agree on required fields, status values, errors, and image handling.
-- Keep `doc/` for the required process file and retain existing `docs/` materials to preserve their links. Do not move course documents merely to make the names uniform.
+- Keep `doc/` for the required process file and `docs/` for course materials and implementation notes. Restore appropriate reference documents from earlier commits in a separate reviewed documentation task.
 - Never commit `.env` secrets, credentials, real user photos, local databases/uploads, virtual environments, `node_modules`, builds, or test reports. Provide placeholder configuration examples when needed.
 
 ### Architecture references
@@ -106,7 +102,7 @@ Use lowercase words and hyphens, without spaces. Product, bug, and maintenance b
 
 ### Historical individual-activity exception
 
-The earlier branch **`Gustavo_genAI_acitivity`** (the exact existing spelling, sometimes referred to as Gustavo_genai_activity) was an exception for the individual GenAI activity. Its personal name and direct commits predate this shared process. Preserve its history; do not rename it or fabricate earlier reviews. Future team work follows the conventions above. Bring its existing frontend into `prototype` through a reviewed PR before building additional frontend tasks.
+The earlier branch **`Gustavo_genAI_acitivity`** (the exact existing spelling, sometimes referred to as Gustavo_genai_activity) was an exception for the individual GenAI activity. Its personal name and direct commits predate this shared process. Preserve its history; do not rename it or fabricate earlier reviews. Future team work follows the conventions above. Any reuse of its frontend must occur through focused task branches and reviewed PRs that comply with this foundation.
 
 ### Starting and updating a task
 
@@ -121,7 +117,7 @@ The earlier branch **`Gustavo_genAI_acitivity`** (the exact existing spelling, s
 
 Use one repository-linked GitHub Project board named **BoilerFound Development**, with **Todo → In progress → In review → Done**. GitHub Project creation and settings are separate setup actions; the template files alone do not create this board.
 
-Every task must describe its problem, owner, relevant SDP requirement IDs (when applicable), acceptance criteria, and testing plan. Use `.github/ISSUE_TEMPLATE/task.md`. Keep tasks small enough for one focused PR, usually one or a few working sessions. Split a task when its scope becomes difficult for one teammate to review.
+Every task must describe its problem, owner, relevant SDP requirement IDs (when applicable), acceptance criteria, and testing plan. Add `.github/ISSUE_TEMPLATE/task.md` during process setup with those fields; until it exists, include them directly in the issue body. Keep tasks small enough for one focused PR, usually one or a few working sessions. Split a task when its scope becomes difficult for one teammate to review.
 
 - Move to **In progress** when implementation begins and link the task branch or draft PR.
 - Move to **In review** when the implementation meets its acceptance criteria and the PR is ready.
@@ -131,7 +127,7 @@ Every task must describe its problem, owner, relevant SDP requirement IDs (when 
 
 ## 5. Pull requests, reviews, and merging
 
-Use `.github/pull_request_template.md` for every task PR and milestone PR. Explain the resulting behavior, link the issue, list validation performed, and include UI evidence when screens change. Explicitly say which parts are mocked, device-local, or incomplete.
+Add `.github/pull_request_template.md` during process setup for every task PR and milestone PR. Its fields must explain the resulting behavior, link the issue, list validation performed, identify the target branch and limitations, and include UI evidence when screens change. Until the template exists, provide these sections manually. Explicitly say which parts are mocked, device-local, or incomplete.
 
 ### Frequency and approval
 
@@ -154,7 +150,7 @@ Use `.github/pull_request_template.md` for every task PR and milestone PR. Expla
 
 The repository owner/administrator should configure branch rules for `main` and `prototype`: require PRs, one non-author approval, resolved conversations, and renewed approval after material changes; block force pushes and branch deletion where supported. Enable merge commits. Follow [GitHub's protected-branch guidance](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches).
 
-All applicable CI results must pass before merging. Current workflows filter by changed paths, so do not require a workflow globally if it will never run on documentation-only PRs. If the owner wants one mandatory CI status for every PR, first add an always-running aggregate check that correctly handles skipped application jobs. Until settings are verified, these are team-enforced rules, not a claim that GitHub already blocks every violation.
+All applicable CI results must pass before merging once the corresponding implementation and workflow exist. If workflows filter by changed paths, do not require a workflow globally if it will never run on documentation-only PRs. If the owner wants one mandatory CI status for every PR, first add an always-running aggregate check that correctly handles skipped application jobs. Until settings are verified, these are team-enforced rules, not a claim that GitHub already blocks every violation.
 
 ## 6. CI, testing, and definition of done
 
@@ -168,7 +164,7 @@ Run checks appropriate to changed behavior before final review. State what was r
 | Documentation only | Check Markdown rendering, relative paths, commands, references, branch naming, and agreement with actual repository state; application tests are not required for prose-only edits |
 | CI/dependency changes | Validate the configuration and run the affected jobs/checks; include dependency/configuration changes and lockfiles together |
 
-The backend workflow runs on backend-changing PRs and pushes to `main` and `prototype`. The existing frontend workflow enters through the frontend integration PR and must run for relevant PRs and integration-branch pushes. Keep job names distinct. Do not merge a failed run or an unexplained skipped required check; investigate and rerun after the cause is corrected.
+Create the backend workflow with the first backend implementation, running on backend-changing PRs and pushes to `main` and `prototype`. Create the frontend workflow with the first frontend implementation, running for relevant PRs and integration-branch pushes. Keep job names distinct. Do not merge a failed run or an unexplained skipped required check; investigate and rerun after the cause is corrected. The structure-only foundation itself has no application to execute; validate its document and directory layout instead.
 
 For found reporting, cover successful submission, required photo/location errors, invalid uploads, navigation, server/storage failures, and confirmation without an existing report. Use fresh test records and temporary storage. Browser mobile emulation does not replace native-device testing; report that limitation.
 
@@ -178,11 +174,12 @@ A task is done when its acceptance criteria are met, the relevant checks pass on
 
 Complete these setup actions before treating the prototype assignment as finished:
 
-- [ ] Review and merge `docs/development-process` into `main` through a PR using the new template.
+- [ ] Review and merge the clean foundation on `docs/development-process` into `main` through a PR. Manually include the required PR sections and explicitly review removal of the inherited implementation files.
+- [ ] Add the issue and PR templates in a separate reviewed process-setup task before feature development starts.
 - [ ] Create the repository-linked Project board and assign initial issues and reviewers.
 - [ ] Configure or verify the common-branch rules described above; record any unavailable enforcement in the setup issue.
 - [ ] Create `prototype` from the latest `origin/main` after the process PR merges.
-- [ ] Review the existing frontend in a PR from `Gustavo_genAI_acitivity` into `prototype`, preserving the individual-activity exception and original authorship.
+- [ ] Plan focused frontend/backend tasks against this foundation. Where earlier code is reused, preserve its original authorship and adapt it through reviewed changes instead of merging old branches wholesale.
 - [ ] Confirm that frontend and backend CI run for relevant PRs and integration pushes.
 - [ ] Create issue-linked task branches for found-report API endpoints, frontend API integration, and integration tests. Define the API contract before parallel implementation.
 - [ ] Review and merge each task into `prototype`; demonstrate all chosen-flow screens and at least one real API call.
@@ -204,4 +201,4 @@ The prototype submission also needs the chosen flow description, Figma link, API
 
 ### GenAI disclosure for this process document
 
-Codex drafted this development-process document and its supporting issue/PR templates using the team's proposal, SDP, prototype assignment, existing code, and discussion with Gustavo. Team members must review and approve the proposed workflow and record the actual use of GenAI in their final assignment statement; this draft does not claim that review has already occurred.
+Codex drafted this development-process document and prepared its empty directory structure using the team's proposal, SDP, prototype assignment, existing code, and discussion with Gustavo. Team members must review and approve the proposed workflow and record the actual use of GenAI in their final assignment statement; this draft does not claim that review has already occurred.
