@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy import DateTime, Enum, ForeignKey, String, TypeDecorator
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 
@@ -66,5 +66,37 @@ class LostReport(Base):
         default=ReportStatus.OPEN,
         index=True,
     )
+    claimed_found_report_id: Mapped[str | None] = mapped_column(ForeignKey("found_reports.id"))
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=_utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=_utcnow, onupdate=_utcnow)
+
+    claimed_found_report: Mapped["FoundReport | None"] = relationship(lazy="joined")
+
+    @property
+    def pickup_location(self) -> str | None:
+        item = self.claimed_found_report
+        if item is None:
+            return None
+        return item.drop_off or item.location
+
+
+class FoundReportStatus(enum.StrEnum):
+    AVAILABLE = "available"
+    CLAIMED = "claimed"
+
+
+class FoundReport(Base):
+    __tablename__ = "found_reports"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_new_id)
+    owner_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    location: Mapped[str] = mapped_column(String(150))
+    drop_off: Mapped[str] = mapped_column(String(150), default="")
+    description: Mapped[str] = mapped_column(String(1000), default="")
+    question: Mapped[str] = mapped_column(String(300), default="")
+    # Expected answer to `question`. Never returned by the API.
+    answer: Mapped[str] = mapped_column(String(300), default="")
+    image_key: Mapped[str] = mapped_column(String(64))
+    status: Mapped[str] = mapped_column(String(16), default=FoundReportStatus.AVAILABLE, index=True)
+    claimed_by_id: Mapped[str | None] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=_utcnow)

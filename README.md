@@ -2,43 +2,53 @@
 
 BoilerFound helps the Purdue community reconnect lost belongings with their owners.
 
-The first implementation is the **Found Item Report** flow in [`frontend/`](frontend):
+The prototype implements the **Lost Item Report** flow: a Purdue student reports something they lost, reviews found items that match it, proves the item is theirs by answering the finder's question, and sees where to pick it up.
 
-1. Home: choose lost or found (lost reporting is marked Coming soon).
-2. Item type: sensitive items receive Purdue Police guidance; other items continue.
-3. Found report: photo and found location are required; other fields are optional.
-4. Thank you: confirms the saved report and returns to home.
+1. Report: describe the item, where it was last seen, and optionally add a photo.
+2. Matches: found items that share keywords with the description are shown with their photo and where they were found. If nothing matches, the report waits in a "Looking for matches" state.
+3. Verify: the owner answers the question the finder left (e.g. "What brand is the umbrella?"). A wrong answer is rejected.
+4. Pickup: a correct answer reveals the pickup location. "I picked it up" closes the report.
+
+"My reports" lists every report with its status; open reports can be edited or closed, and closed ones reopened.
 
 ### Run locally
 
-Install Node.js 22.13 or newer, then run:
+Commands are for Windows PowerShell. On macOS/Linux, use `python3` and `.venv/bin/python` in place of `python` and `.\.venv\Scripts\python.exe`.
+
+Start the backend (Python 3.12+):
 
 ```powershell
-cd frontend
-npm ci
-npm run web
+cd backend
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\.venv\Scripts\python.exe -m app.demo_seed
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload
 ```
 
-Open http://localhost:8081. Use `npm start` for the Expo native development server.
+`app.demo_seed` resets the local database and uploads to the demo state: no lost reports, and one found item turned in by test user Bob, a black umbrella found next to the WALC printers. Its finder's question is "What brand is the umbrella?" (answer: Balios). Rerun it, with the server stopped, to start the demo over or after a database schema change.
 
-### Checks and tests
+In a second terminal, serve the frontend from the repo root:
 
 ```powershell
-cd frontend
-npm run typecheck
-npm run lint
-npx playwright install chromium
-npm test
-npm run build:web
+python -m http.server 8081 -d frontend
 ```
 
-Playwright starts localhost automatically if needed. It tests desktop and mobile Chromium, including server availability, navigation, sensitive-item guidance, missing photo/location, whitespace-only location, invalid uploads, successful submission, saved confirmation after refresh, draft preservation, and storage failure. Run `npm run test:ui` for interactive test debugging, or `npx playwright show-report` for the HTML report. GitHub Actions runs checks on frontend pushes and pull requests.
+Open http://localhost:8081. To see a match, report a black umbrella last seen at WALC. To see the "Looking for matches" state, report anything else, such as a water bottle.
 
-### Current scope
+- There is no sign-in yet. The page sends requests to `http://127.0.0.1:8000` (uvicorn's default) as the backend's built-in test user Alice. Change `API_BASE` or `DEV_AUTH_TOKEN` at the top of `frontend/app.js` to use another address or one of the test users listed in [`backend/README.md`](backend/README.md).
+- Opening `index.html` directly from disk does not work. The backend only accepts browser requests from the origins in `BOILERFOUND_CORS_ORIGINS`, a JSON list that defaults to `["http://localhost:8081", "http://127.0.0.1:8081"]`. Set it as an environment variable or in `backend/.env` to serve the page elsewhere.
+- Without internet access the page falls back to system fonts, since its fonts load from Google Fonts.
 
-This is a local frontend implementation. Reports and photos persist in the browser's IndexedDB (AsyncStorage on native), on this device only. Drafts survive in-app back navigation and validation errors, but not a browser refresh. Authentication, a shared backend/database, matching, email, claims, and report management are future work. The confirmation deliberately says the report is saved locally rather than claiming it is published campus-wide. Native builds have not yet been device-tested.
+### Tests
 
-The UI follows the [Figma final prototype](https://www.figma.com/design/LACVTkIlbslyo5x2L4oDDA/BoilerFound-UI-UX?node-id=87-310) using Purdue gold `#CEB888`, black `#101010`, Inter body text, and Headland One headings. See [`docs/implementation/found-item-flow.md`](docs/implementation/found-item-flow.md) for structure, design-comment decisions, and future integration points.
+```powershell
+cd backend
+.\.venv\Scripts\python.exe -m pytest
+```
+
+See [`backend/README.md`](backend/README.md) for the API contract and [`docs/implementation/lost-item-flow.md`](docs/implementation/lost-item-flow.md) for how the frontend is structured and its known limitations.
+
+The UI is based on the [Figma final prototype](https://www.figma.com/design/LACVTkIlbslyo5x2L4oDDA/BoilerFound-UI-UX?node-id=87-310).
 
 ## Team
 
