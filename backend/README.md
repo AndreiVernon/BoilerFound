@@ -2,8 +2,10 @@
 
 FastAPI service for BoilerFound, a lost-and-found app for Purdue that matches lost-item reports with
 photos of found items. So far it covers lost-item reports: submitting them (requirement FR-101) and
-editing or closing them (FR-102), plus found-report submission (FR-103) and owner-only retrieval. Requirement IDs refer to our Software Development Plan,
-[docs/Semester_1/SDP.pdf](../docs/Semester_1/SDP.pdf). Matching, claims, notifications, and found-report editing are not built yet.
+editing or closing them (FR-102), found-report submission (FR-103), placeholder keyword matching
+(FR-109), and claiming a matched item by answering the finder's question. Requirement IDs refer to
+our Software Development Plan, [docs/Semester_1/SDP.pdf](../docs/Semester_1/SDP.pdf).
+Image-based matching, notifications, and found-report editing are not built yet.
 
 ## Setup
 
@@ -24,7 +26,19 @@ uvicorn app.main:app --reload
 
 Interactive API docs are at http://127.0.0.1:8000/docs. On startup the app creates a SQLite database
 at `backend/boilerfound.db` if it doesn't exist (restarts keep existing data) and stores uploaded
-images in `backend/uploads/`. Both are gitignored.
+images in `backend/uploads/`. Both are gitignored. Startup only creates missing tables; it doesn't
+add columns to existing ones, so after a model change delete `boilerfound.db` or run the demo seed.
+
+### Demo data
+
+```bash
+python -m app.demo_seed
+```
+
+Run with the server stopped. It drops and recreates every table, empties `uploads/`, and adds one
+found report from Bob: a black umbrella (photo `demo/umbrella.jpg`) found next to the WALC printers,
+dropped off at the WALC front desk, with the question "What brand is the umbrella?" and answer
+"Balios".
 
 ## Auth (placeholder)
 
@@ -57,7 +71,10 @@ is unusable outside local development for now. When the real provider is chosen,
 | GET    | `/lost-reports/{id}`       | One of your reports                                               |
 | PATCH  | `/lost-reports/{id}`       | JSON with any of `description`, `location`, `status`. Returns the updated report |
 | GET    | `/lost-reports/{id}/image` | The report's image file                                           |
-| POST   | `/found-reports`           | Create a found report; required multipart `location` and `image`, optional `drop_off`, `description`, and `question` |
+| GET    | `/lost-reports/{id}/matches` | Found items that may be this lost item, best first (see below)  |
+| GET    | `/lost-reports/{id}/matches/{found_id}/image` | Photo of a matched found item         |
+| POST   | `/lost-reports/{id}/claim` | JSON `{"found_report_id", "answer"}`. Claims a matched item; returns the updated lost report |
+| POST   | `/found-reports`           | Create a found report; required multipart `location` and `image`, optional `drop_off`, `description`, `question`, and `answer` |
 | GET    | `/found-reports/{id}`      | Retrieve one found report owned by the authenticated reporter |
 | GET    | `/found-reports/{id}/image` | Retrieve its image, with the same owner/access checks |
 
@@ -69,9 +86,34 @@ is unusable outside local development for now. When the real provider is chosen,
 - `image`: required JPEG or PNG identified by content, up to 10 MB by default; uses the existing image store.
 - `drop_off`: optional, up to 150 characters after trimming.
 - `description`: optional, up to 1,000 characters after trimming.
-- `question`: optional, up to 300 characters after trimming. It is stored privately for the reporter; this API does not implement claims or verify ownership.
+- `question`: optional, up to 300 characters after trimming. A question only the item's real owner could answer; shown to possible owners on matches.
+- `answer`: optional, up to 300 characters after trimming. The expected answer to `question`. It is never returned by any endpoint.
 
-Creation uses the authenticated account as owner. Found-report reads and image downloads require that same owner. Error responses use `401` for missing/invalid authentication, `403` for another user's record, `404` for missing records/images, `422` for invalid/missing fields, `413` for oversized uploads, and `415` for unsupported image content. A database failure removes the newly uploaded image. Existing lost-report behavior is unchanged.
+Status is `available` until a possible owner claims the item, then `claimed`.
+
+### Matching and claims
+
+`GET /lost-reports/{id}/matches` returns available found items, excluding your own, that share at
+least one description keyword with the lost report (words of 3+ letters, minus common words).
+Items sharing more description keywords rank first, then items sharing location keywords. This is a
+placeholder for image-based matching; the endpoint's response won't change when the scoring does.
+Each match has `id`, `description`, `location` (where it was found), `question`, `created_at`, and
+`image_url`. The finder's identity, drop-off location, and expected answer are not included. Closed
+reports and reports that already claimed an item return `[]`.
+
+`POST /lost-reports/{id}/claim` succeeds when the item is currently a match and the answer equals
+the found report's `answer`, ignoring case and extra spaces. Items without an answer can be claimed
+without one; desk staff check ID at pickup. On success the found item becomes `claimed` and the lost
+report's `claimed_found_report_id` and `pickup_location` (the drop-off location, or the found
+location if none) are set. The lost report stays `open` until the owner closes it after pickup.
+
+Claim errors: `400` wrong answer, `404` item isn't a current match, `409` report is closed or has
+already claimed an item, plus the usual `401`/`403`. Answers aren't rate-limited yet.
+
+Lost reports include `claimed_found_report_id` and `pickup_location`, both `null` until a claim
+succeeds.
+
+Creation uses the authenticated account as owner. Found-report reads and image downloads require that same owner. Error responses use `401` for missing/invalid authentication, `403` for another user's record, `404` for missing records/images, `422` for invalid/missing fields, `413` for oversized uploads, and `415` for unsupported image content. A database failure removes the newly uploaded image.
 
 Sensitive-item routing remains a frontend decision in this prototype; server-side sensitive-item classification and production identity integration are not implemented.
 
@@ -85,8 +127,7 @@ Rules:
   header and display the result.
 - Only the report's owner can view or edit it. Anyone else gets `403`.
 - Status is `open` or `closed`. Close a report with `PATCH {"status": "closed"}` and reopen it with
-  `{"status": "open"}`; there is no delete. Closed reports are kept but will
-  be excluded from matching once it's built.
+  `{"status": "open"}`; there is no delete. Closed reports are kept but get no matches.
 - Error codes: `401` for missing or invalid tokens, `403` for someone else's report, `404` for an
   unknown report id or a report with no image, `422` for bad fields, `413` for images over the size
   limit, `415` for files that aren't JPEG or PNG.

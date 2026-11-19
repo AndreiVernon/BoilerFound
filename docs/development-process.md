@@ -17,7 +17,7 @@ BoilerFound/
 │   └── implementation/             # Technical notes and test/demo evidence
 ├── frontend/
 │   ├── index.html                  # Page shell: header, footer, and #app mount point
-│   ├── app.js                      # Screen rendering, navigation, form state, and API calls
+│   ├── app.js                      # Hash routing, page rendering, forms, and API calls
 │   └── styles.css                  # Shared colors, fonts, and layout
 └── backend/
     ├── app/
@@ -26,10 +26,13 @@ BoilerFound/
     │   ├── schemas.py              # Request and response validation
     │   ├── models.py               # Database entities
     │   ├── crud.py                 # Database operations
+    │   ├── matching.py             # Scores found items against a lost report
     │   ├── database.py             # Database connections and sessions
     │   ├── auth.py                 # Authentication and access checks
     │   ├── config.py               # Environment-based settings
-    │   └── storage.py              # Image validation and storage
+    │   ├── storage.py              # Image validation and storage
+    │   └── demo_seed.py            # Resets local data to the demo state
+    ├── demo/                       # Images used by the demo seed
     ├── tests/                      # API tests grouped by requirement
     ├── migrations/                 # Versioned database schema changes
     ├── requirements.txt            # Application dependencies
@@ -41,7 +44,7 @@ This tree defines where project files belong as they are added; it does not indi
 
 ### Organization rules
 
-- Keep the frontend dependency-free and build-free. Each screen is a render function in `frontend/app.js`. When a second user flow is added, split `app.js` into ES modules under `frontend/`. All backend requests use the `API_BASE` constant at the top of `app.js`.
+- Keep the frontend dependency-free and build-free. Each page is a render function in `frontend/app.js`, registered in its `routes` table. When a second user flow is added, split `app.js` into ES modules under `frontend/`. All backend requests use the `API_BASE` constant at the top of `app.js`.
 - Keep API endpoints in backend routers, request/response validation in schemas, database entities in models, and database operations in CRUD modules. Split modules by feature when needed.
 - Keep backend tests in `backend/tests/`. Use synthetic images and temporary test databases.
 - Document API fields, responses, and errors in the backend README and generated OpenAPI documentation. Update callers when an API changes.
