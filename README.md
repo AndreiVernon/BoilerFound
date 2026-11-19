@@ -5,11 +5,13 @@ BoilerFound helps the Purdue community reconnect lost belongings with their owne
 The prototype implements the **Found Item Report** flow: a Purdue community member reports an item they found, gets Purdue Police guidance for wallets, IDs, and payment cards, submits a photo and where they found it, and sees where to leave the item.
 
 1. Home: start a found-item report.
-2. Item type: for wallets, IDs, and payment cards, the app shows Purdue Police hand-off guidance and ends without saving a report. Other items continue.
-3. Found report: photo and found location are required. Drop-off location, description, and a verification question are optional. The verification question is something only the real owner could answer (e.g. "What's written on the inside tag?"); it is stored privately with the report for checking future claims.
-4. Thank you: shows where to leave the item (the drop-off location, or the found location if no drop-off was given) and the report ID saved by the backend.
+2. Item type: wallets, IDs, and payment cards are handled by Purdue Police, so the app shows hand-off guidance and ends without saving a report. Other items continue.
+3. Found report: photo and found location are required. Drop-off location (the staffed desk where the finder will leave the item), description, and a verification question are optional. The verification question is something only the real owner could answer (e.g. "What's written on the inside tag?"); it is stored privately with the report for checking future claims.
+4. Thank you: confirms the report ID saved by the backend and reminds the finder where the item goes: the drop-off location, or the found location if none was given.
 
 ### Run locally
+
+Commands are for Windows PowerShell. On macOS/Linux, use `python3` and `.venv/bin/python` in place of `python` and `.\.venv\Scripts\python.exe`.
 
 Start the backend (Python 3.12+):
 
@@ -28,9 +30,9 @@ python -m http.server 8081 -d frontend
 
 Open http://localhost:8081. The backend creates its SQLite database and upload folder on first start; no other setup is needed.
 
-- The page sends requests to `http://127.0.0.1:8000` (uvicorn's default) as the backend's built-in test user Alice. Change `API_BASE` or `DEV_AUTH_TOKEN` at the top of `frontend/app.js` to use another address or test user.
-- Opening `index.html` directly from disk does not work. The backend only accepts browser requests from the origins listed in `BOILERFOUND_CORS_ORIGINS` (port 8081 by default), set as an environment variable or in `backend/.env`.
-- The page needs an internet connection for Google Fonts.
+- There is no sign-in yet. The page sends requests to `http://127.0.0.1:8000` (uvicorn's default) as the backend's built-in test user Alice. Change `API_BASE` or `DEV_AUTH_TOKEN` at the top of `frontend/app.js` to use another address or one of the test users listed in [`backend/README.md`](backend/README.md).
+- Opening `index.html` directly from disk does not work. The backend only accepts browser requests from the origins in `BOILERFOUND_CORS_ORIGINS`, a JSON list that defaults to `["http://localhost:8081", "http://127.0.0.1:8081"]`. Set it as an environment variable or in `backend/.env` to serve the page elsewhere.
+- Without internet access the page falls back to system fonts, since its fonts load from Google Fonts.
 
 ### Tests
 
