@@ -107,6 +107,7 @@ main.container { flex: 1; padding-top: 40px; padding-bottom: 72px; }
   padding: 14px; border: 1px dashed var(--gold-dark); border-radius: 10px; background: var(--soft); cursor: pointer;
 }
 .upload:hover { border-style: solid; }
+.upload.dragging { border-style: solid; border-color: var(--ink); background: #ece5d3; }
 .upload-preview {
   width: 96px; height: 96px; border-radius: 8px; background: var(--paper) center / cover no-repeat;
   display: grid; place-items: center; color: var(--gold-text); font-size: 28px;

@@ -183,7 +183,7 @@ function newReportPage() {
           <label for="photo">Photo <span class="optional">(optional)</span></label>
           <label class="upload" for="photo">
             <span class="upload-preview" aria-hidden="true">+</span>
-            <span><strong data-photo-name>Add a photo</strong><span class="hint">JPEG or PNG, up to 10 MB</span></span>
+            <span><strong data-photo-name>Add a photo</strong><span class="hint">Drag one here or click to choose · JPEG or PNG, up to 10 MB</span></span>
             <input type="file" id="photo" name="image" accept="image/jpeg,image/png">
           </label>
         </div>
@@ -195,7 +195,7 @@ function newReportPage() {
         <ul class="tips">
           <li>Mention the color, size, material, and anything unique, like stickers or engravings.</li>
           <li>Name the building and the spot, e.g. “WALC, next to the printers”.</li>
-          <li>A photo of your item, or one like it, helps match it with photos of found items.</li>
+          <li>A photo of your item, or one like it, is shown beside possible matches so you can compare them.</li>
         </ul>
       </aside>
     </div>`;
@@ -555,6 +555,32 @@ document.addEventListener('change', event => {
   upload.querySelector('[data-photo-name]').textContent = file ? file.name : 'Add a photo';
   preview.textContent = file && !problem ? '' : '+';
   preview.style.backgroundImage = file && !problem ? `url("${URL.createObjectURL(file)}")` : '';
+});
+
+// Without preventDefault, a photo dropped anywhere on the page opens in the tab and discards the form.
+for (const type of ['dragover', 'drop']) {
+  window.addEventListener(type, event => event.preventDefault());
+}
+
+document.addEventListener('dragover', event => {
+  event.target.closest('.upload')?.classList.add('dragging');
+});
+
+document.addEventListener('dragleave', event => {
+  const upload = event.target.closest('.upload');
+  if (upload && !upload.contains(event.relatedTarget)) upload.classList.remove('dragging');
+});
+
+document.addEventListener('drop', event => {
+  const upload = event.target.closest('.upload');
+  const file = event.dataTransfer.files[0];
+  if (!upload || !file) return;
+  upload.classList.remove('dragging');
+  const input = upload.querySelector('input[type="file"]');
+  const dropped = new DataTransfer();
+  dropped.items.add(file);
+  input.files = dropped.files;
+  input.dispatchEvent(new Event('change', { bubbles: true }));
 });
 
 window.addEventListener('hashchange', () => {
