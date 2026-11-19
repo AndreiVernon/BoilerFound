@@ -4,12 +4,12 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Upload
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from app import crud
+from app import crud, matching
 from app.auth import CurrentUser
 from app.config import Settings, get_settings
 from app.database import get_db
 from app.models import LostReport, ReportStatus, User
-from app.schemas import Description, Location, LostReportRead, LostReportUpdate
+from app.schemas import ClaimRequest, Description, Location, LostReportRead, LostReportUpdate, MatchRead
 from app.storage import (
     CONTENT_TYPES,
     ImageTooLarge,
@@ -95,7 +95,59 @@ def get_lost_report_image(report_id: str, user: CurrentUser, db: DB, store: Imag
     report = _get_owned_report(db, report_id, user)
     if report.image_key is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "This report has no image")
-    path = store.path_for(report.image_key)
+    return _image_response(store, report.image_key)
+
+
+@router.get("/{report_id}/matches", response_model=list[MatchRead])
+def list_matches(report_id: str, user: CurrentUser, db: DB):
+    """FR-109 (placeholder scoring): found items that may be this report's lost item."""
+    report = _get_owned_report(db, report_id, user)
+    if report.status == ReportStatus.CLOSED or report.claimed_found_report_id:
+        return []
+    return [
+        MatchRead(
+            id=item.id,
+            description=item.description,
+            location=item.location,
+            question=item.question,
+            created_at=item.created_at,
+            image_url=f"/lost-reports/{report.id}/matches/{item.id}/image",
+        )
+        for item in matching.find_matches(db, report)
+    ]
+
+
+@router.get("/{report_id}/matches/{found_report_id}/image", response_class=FileResponse)
+def get_match_image(report_id: str, found_report_id: str, user: CurrentUser, db: DB, store: ImageStore):
+    report = _get_owned_report(db, report_id, user)
+    item = matching.get_match(db, report, found_report_id)
+    if item is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "No matching item with that id")
+    return _image_response(store, item.image_key)
+
+
+@router.post("/{report_id}/claim", response_model=LostReportRead)
+def claim_match(report_id: str, claim: ClaimRequest, user: CurrentUser, db: DB):
+    """Claim a matched found item by answering the finder's question. Success reveals the pickup location."""
+    report = _get_owned_report(db, report_id, user)
+    if report.status == ReportStatus.CLOSED:
+        raise HTTPException(status.HTTP_409_CONFLICT, "This report is closed")
+    if report.claimed_found_report_id:
+        raise HTTPException(status.HTTP_409_CONFLICT, "An item has already been claimed for this report")
+    item = matching.get_match(db, report, claim.found_report_id)
+    if item is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "No matching item with that id")
+    if item.answer and _normalize(claim.answer) != _normalize(item.answer):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "That answer doesn't match")
+    return crud.claim_found_report(db, report, item)
+
+
+def _normalize(answer: str) -> str:
+    return " ".join(answer.split()).casefold()
+
+
+def _image_response(store: LocalImageStore, image_key: str) -> FileResponse:
+    path = store.path_for(image_key)
     if not path.is_file():
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Image file is missing")
     return FileResponse(path, media_type=CONTENT_TYPES[path.suffix])

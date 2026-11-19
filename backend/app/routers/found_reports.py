@@ -9,7 +9,7 @@ from app.auth import CurrentUser
 from app.config import Settings, get_settings
 from app.database import get_db
 from app.models import FoundReport, User
-from app.schemas import DropOff, FoundDescription, FoundReportRead, Location, OwnerQuestion
+from app.schemas import DropOff, FoundDescription, FoundReportRead, Location, OwnerAnswer, OwnerQuestion
 from app.storage import (
     CONTENT_TYPES, ImageTooLarge, LocalImageStore, UnsupportedImageType,
     get_image_store, read_and_validate_image,
@@ -40,6 +40,7 @@ def create_found_report(
     drop_off: Annotated[DropOff, Form()] = "",
     description: Annotated[FoundDescription, Form()] = "",
     question: Annotated[OwnerQuestion, Form()] = "",
+    answer: Annotated[OwnerAnswer, Form(description="Expected answer to `question`; never returned")] = "",
 ):
     """FR-103: validate the required image and location before storing a found report."""
     try:
@@ -53,7 +54,7 @@ def create_found_report(
     try:
         return crud.create_found_report(
             db, owner_id=user.id, location=location, drop_off=drop_off,
-            description=description, question=question, image_key=image_key,
+            description=description, question=question, answer=answer, image_key=image_key,
         )
     except Exception:
         db.rollback()

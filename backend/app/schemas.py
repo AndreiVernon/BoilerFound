@@ -49,6 +49,8 @@ class LostReportRead(BaseModel):
     created_at: datetime
     updated_at: datetime
     image_key: str | None = Field(default=None, exclude=True)
+    claimed_found_report_id: str | None
+    pickup_location: str | None
 
     @computed_field
     @property
@@ -59,6 +61,7 @@ class LostReportRead(BaseModel):
 DropOff = Annotated[str, StringConstraints(strip_whitespace=True, max_length=150)]
 FoundDescription = Annotated[str, StringConstraints(strip_whitespace=True, max_length=1000)]
 OwnerQuestion = Annotated[str, StringConstraints(strip_whitespace=True, max_length=300)]
+OwnerAnswer = Annotated[str, StringConstraints(strip_whitespace=True, max_length=300)]
 
 
 class FoundReportRead(BaseModel):
@@ -70,10 +73,28 @@ class FoundReportRead(BaseModel):
     drop_off: str
     description: str
     question: str
-    status: Literal["available"]
+    status: Literal["available", "claimed"]
     created_at: datetime
 
     @computed_field
     @property
     def image_url(self) -> str:
         return f"/found-reports/{self.id}/image"
+
+
+class MatchRead(BaseModel):
+    """A found item as shown to a possible owner: no finder identity, drop-off, or answer."""
+
+    id: str
+    description: str
+    location: str
+    question: str
+    created_at: datetime
+    image_url: str
+
+
+class ClaimRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    found_report_id: str
+    answer: OwnerAnswer = ""
